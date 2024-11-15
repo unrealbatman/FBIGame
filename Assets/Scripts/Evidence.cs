@@ -4,7 +4,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using static TMPro.SpriteAssetUtilities.TexturePacker_JsonArray;
 
-public abstract class Evidence : MonoBehaviour
+public  class Evidence : MonoBehaviour, IExaminable 
 
 
 /*Represents any piece of collectible evidence in the crime scene.
@@ -17,15 +17,24 @@ MiscellaneousEvidence: For items that do not fit into specific evidence categori
 
 
 {
-    // Start is called before the first frame update
-    void Start()
+
+
+
+    public string clueDescription;
+
+
+   
+    public void Examine()
     {
-        
+
+        //This method must  be concerend with uopdating UI elements and displaying clue info
+
+        Debug.Log("Examined Object: "+this.gameObject.name);
+
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+
+
+
+
 }
