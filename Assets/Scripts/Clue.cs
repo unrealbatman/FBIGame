@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
-public abstract class Clue : MonoBehaviour
+public  class Clue : MonoBehaviour
 
 
 /*
@@ -15,15 +16,7 @@ LocationClue: Clues specific to the location where the suspect may have been see
 
 
 {
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+     public string clueName;
+     public string description;
+     public Image  clueIcon;
 }

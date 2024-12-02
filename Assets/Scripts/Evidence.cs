@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UI;
 using static TMPro.SpriteAssetUtilities.TexturePacker_JsonArray;
 
 public  class Evidence : MonoBehaviour, IExaminable 
@@ -20,14 +21,16 @@ MiscellaneousEvidence: For items that do not fit into specific evidence categori
 
 
 
+
+    public string clueName;
     public string clueDescription;
+    public Image clueIcon;
 
-
-   
     public void Examine()
     {
 
-        //This method must  be concerend with uopdating UI elements and displaying clue info
+
+
 
         Debug.Log("Examined Object: "+this.gameObject.name);
 

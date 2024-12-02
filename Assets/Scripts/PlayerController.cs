@@ -38,6 +38,12 @@ public class PlayerController : MonoBehaviour
     private Coroutine loadingCoroutine;
     private IExaminable targetExaminable;
 
+    private bool canRotate = true; // New variable to control rotation
+
+
+
+    private static Clue[] inventory; 
+
     private void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
@@ -47,7 +53,10 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        RotateHeadWithMouseInput();
+        if (canRotate)
+        {
+            RotateHeadWithMouseInput();
+        }
         HandleInteraction();
     }
 
@@ -140,6 +149,11 @@ public class PlayerController : MonoBehaviour
     private IEnumerator ZoomAndExamine(RaycastHit hit, IExaminable examinable)
     {
         isZooming = true;
+        canRotate = false; // Disable rotation
+
+        initialCamPosition = cam.transform.position;
+
+
         Vector3 zoomTargetPosition = hit.point - (hit.point - initialCamPosition).normalized * maxZoomDistance;
 
         // Move camera to zoom position
@@ -149,9 +163,13 @@ public class PlayerController : MonoBehaviour
         examinable.Examine();
 
         // Move camera back to initial position
-        yield return MoveCamera(zoomTargetPosition, initialCamPosition);
+        yield return MoveCamera(cam.transform.position, initialCamPosition);
+
+        //cam.transform.position = initialCamPosition;
 
         isZooming = false;
+        canRotate = true; // Re-enable rotation
+
     }
 
 
