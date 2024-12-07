@@ -1,43 +1,82 @@
 using System.Collections;
-using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.UI;
-using static TMPro.SpriteAssetUtilities.TexturePacker_JsonArray;
 
-public  class Evidence : MonoBehaviour, IExaminable 
-
-
-/*Represents any piece of collectible evidence in the crime scene.
-Methods: collectEvidence(), examine(), getClueInfo()
-Subclasses:
-WeaponEvidence: Specific type of evidence, such as a weapon, with additional methods for retrieving specific weapon data (e.g., getFingerprintInfo()).
-ClothingEvidence: Evidence type related to clothing, potentially with distinct interaction methods.
-MiscellaneousEvidence: For items that do not fit into specific evidence categories but can still be examined for clues.
-*/
-
-
+public class Evidence : MonoBehaviour, IExaminable
 {
+    [Header("Evidence Details")]
+    public string clueName; // Name of the evidence
+    public string clueDescription; // Description of the evidence
+    public Sprite clueIcon; // Icon representing the evidence
 
+    [Header("Examination Settings")]
+    [SerializeField] private float examinationDelay = 2f; // Delay in seconds before adding evidence to the inventory
+    [SerializeField] private float vibrationIntensity = 0.1f; // Intensity of vibration
+    [SerializeField] private float vibrationSpeed = 20f; // Speed of vibration
 
+    private bool isVibrating = false; // Indicates whether the evidence is vibrating
+    private Vector3 originalPosition; // Stores the original position of the evidence
 
-
-    public string clueName;
-    public string clueDescription;
-    public Image clueIcon;
-
-    public void Examine()
+    private void Start()
     {
-
-
-
-
-        Debug.Log("Examined Object: "+this.gameObject.name);
-
+        // Cache the original position
+        originalPosition = transform.localPosition;
     }
 
+    /// <summary>
+    /// Starts the examination process for the evidence.
+    /// </summary>
+    public void Examine()
+    {
+        Debug.Log($"Examining Evidence: {clueName}");
+        StartCoroutine(HandleExamination());
+    }
 
+    /// <summary>
+    /// Coroutine to manage the examination process with vibration and destruction.
+    /// </summary>
+    private IEnumerator HandleExamination()
+    {
+        // Start vibrating during zoom-in
+        isVibrating = true;
+        StartCoroutine(Vibrate());
 
+        // Wait for the specified delay
+        yield return new WaitForSeconds(examinationDelay);
 
+        // Create evidence data and add it to the inventory
+        EvidenceData evidenceData = new EvidenceData(clueName, clueDescription, clueIcon);
+        InventoryManager.Instance.AddEvidenceToInventory(evidenceData);
 
+        Debug.Log($"Evidence {clueName} added to inventory after {examinationDelay} seconds.");
+
+        // Stop vibrating when zoom-out starts
+        isVibrating = false;
+
+        // Wait for camera to complete zoom-out (adjust as needed)
+        yield return new WaitForSeconds(0.5f);
+
+        // Destroy the evidence object
+        Destroy(gameObject);
+    }
+
+    /// <summary>
+    /// Vibrates the evidence object while zooming in.
+    /// </summary>
+    private IEnumerator Vibrate()
+    {
+        while (isVibrating)
+        {
+            float offsetX = Mathf.Sin(Time.time * vibrationSpeed) * vibrationIntensity;
+            float offsetY = Mathf.Cos(Time.time * vibrationSpeed) * vibrationIntensity;
+            float offsetZ = Mathf.Sin(Time.time * vibrationSpeed * 0.5f) * vibrationIntensity;
+
+            // Apply the vibration offset to the object's position
+            transform.localPosition = originalPosition + new Vector3(offsetX, offsetY, offsetZ);
+
+            yield return null;
+        }
+
+        // Reset position when vibration stops
+        transform.localPosition = originalPosition;
+    }
 }

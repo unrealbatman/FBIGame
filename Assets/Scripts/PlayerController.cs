@@ -1,204 +1,92 @@
 using System;
-using System.Collections;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-
-    public static event Action<float> OnLoadingProgress;
-    public static event Action OnLoadingComplete;
-    public static event Action OnLoadingCancelled;
-
     [Header("Player Settings")]
-    [SerializeField] private Transform playerHead;
-    [SerializeField] private Camera cam;
-    [SerializeField] private Transform crosshair;
+    [SerializeField] private Transform playerHead; // Reference to the player's head for rotation
+    [SerializeField] private Camera mainCamera; // Main camera for the player
+    [SerializeField] private Transform crosshair; // Crosshair transform for aiming
 
-    [Header("Zoom and Interaction Settings")]
-    [SerializeField] private float zoomSpeed = 5f;
-    [SerializeField] private float maxZoomDistance = 2f;
-    [SerializeField] private float loadingTime = 2f;
-    [SerializeField] private float interactionRange = 50f;
+    [Header("Interaction Settings")]
+    [SerializeField] private float interactionRange = 50f; // Maximum interaction range
 
-    [Header("Mouse Sensitivity")]
-    public float sensitivityX = 2f;
-    public float minX = -90f;
-    public float maxX = 90f;
-    public float sensitivityY = 2f;
-    public float minY = -90f;
-    public float maxY = 90f;
+    [Header("Mouse Sensitivity Settings")]
+    [SerializeField] private float mouseSensitivityX = 2f; // Mouse sensitivity for X-axis
+    [SerializeField] private float mouseSensitivityY = 2f; // Mouse sensitivity for Y-axis
+    [SerializeField] private float rotationLimitXMin = -90f; // Minimum X rotation limit
+    [SerializeField] private float rotationLimitXMax = 90f; // Maximum X rotation limit
+    [SerializeField] private float rotationLimitYMin = -90f; // Minimum Y rotation limit
+    [SerializeField] private float rotationLimitYMax = 90f; // Maximum Y rotation limit
 
     private float rotationX = 0f;
     private float rotationY = 0f;
-    private Vector3 initialCamPosition;
-    private bool isZooming = false;
-    private bool isLoading = false;
 
-    private Coroutine zoomCoroutine;
-    private Coroutine loadingCoroutine;
-    private IExaminable targetExaminable;
-
-    private bool canRotate = true; // New variable to control rotation
-
-
-
-    private static Clue[] inventory; 
+    private LoadingManager loadingManager;
+    private ZoomManager zoomManager;
 
     private void Start()
     {
+        // Lock the cursor to the game screen
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-        initialCamPosition = cam.transform.position;
+
+        // Get references to the LoadingManager and ZoomManager
+        loadingManager = GetComponent<LoadingManager>();
+        zoomManager = GetComponent<ZoomManager>();
     }
 
     private void Update()
     {
-        if (canRotate)
+        // Rotate the player's head only if zooming is not active
+        if (!ZoomManager.isZooming)
         {
-            RotateHeadWithMouseInput();
+            HandleMouseLook();
         }
-        HandleInteraction();
+
+        // Automatically detect and interact with objects in the player's view
+        HandleAutomaticInteraction();
     }
 
-    private void RotateHeadWithMouseInput()
+    /// <summary>
+    /// Rotates the player's head based on mouse input.
+    /// </summary>
+    private void HandleMouseLook()
     {
-        rotationX += Input.GetAxis("Mouse X") * sensitivityX;
-        rotationY += Input.GetAxis("Mouse Y") * -sensitivityY;
+        rotationX += Input.GetAxis("Mouse X") * mouseSensitivityX;
+        rotationY += Input.GetAxis("Mouse Y") * -mouseSensitivityY;
 
-        rotationX = Mathf.Clamp(rotationX, minX, maxX);
-        rotationY = Mathf.Clamp(rotationY, minY, maxY);
+        // Clamp rotation values to prevent excessive rotation
+        rotationX = Mathf.Clamp(rotationX, rotationLimitXMin, rotationLimitXMax);
+        rotationY = Mathf.Clamp(rotationY, rotationLimitYMin, rotationLimitYMax);
 
+        // Apply the rotation to the player's head
         playerHead.localEulerAngles = new Vector3(rotationY, rotationX, playerHead.localEulerAngles.z);
     }
 
-    private void HandleInteraction()
+    /// <summary>
+    /// Automatically detects objects in the player's view and interacts with them if possible.
+    /// </summary>
+    private void HandleAutomaticInteraction()
     {
+        // Prevent interaction if zooming or loading is in progress
+        if (ZoomManager.isZooming || LoadingManager.isLoading) return;
 
-        //This is to prevent further raycasting if already zooming or loading
-        if (isZooming || isLoading) return;
-
-        Ray ray = cam.ScreenPointToRay(crosshair.position);
+        // Cast a ray from the center of the screen to detect objects
+        Ray ray = mainCamera.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2));
         if (Physics.Raycast(ray, out RaycastHit hit, interactionRange) &&
             hit.collider.gameObject.TryGetComponent<IExaminable>(out IExaminable examinable))
         {
-            targetExaminable = examinable;
-            StartLoadingCoroutine(hit);
-        }
-    }
-
-
-    private void StartLoadingCoroutine(RaycastHit hit)
-    {
-
-        if (loadingCoroutine != null)
-        {
-            StopCoroutine(loadingCoroutine);
-        }
-
-        loadingCoroutine = StartCoroutine(LoadingRoutine(hit));
-    }
-
-    private void StartZoomCoroutine(RaycastHit hit, IExaminable examinable)
-    {
-        if (zoomCoroutine != null) StopCoroutine(zoomCoroutine);
-        zoomCoroutine = StartCoroutine(ZoomAndExamine(hit, examinable));
-    }
-
-    private IEnumerator LoadingRoutine(RaycastHit hit)
-    {
-
-        isLoading = true;
-
-
-        float progress = 0f;
-
-        while (progress < 1f)
-        {
-            //This is where we determine loading bar logic. 
-
-
-            if (!IsCrosshairOnTarget())
+            // Start the loading process and zoom in once loading is complete
+            loadingManager.StartLoadingProcess(hit, () =>
             {
-                CancelLoading();
-                yield break;
-            }
-
-
-            progress += Time.deltaTime / loadingTime;
-
-            OnLoadingProgress?.Invoke(progress);
-            yield return null;
-
+                zoomManager.StartZoomAndExamine(hit, examinable);
+            });
         }
-
-        isLoading = false;
-        OnLoadingComplete?.Invoke();
-        StartZoomCoroutine(hit, targetExaminable);
-    }
-
-
-    private bool IsCrosshairOnTarget()
-    {
-        Ray ray = cam.ScreenPointToRay(crosshair.position);
-        return Physics.Raycast(ray, out RaycastHit hit, interactionRange) &&
-               hit.collider.gameObject.TryGetComponent(out IExaminable examinable) &&
-               examinable == targetExaminable;
-    }
-
-
-    private IEnumerator ZoomAndExamine(RaycastHit hit, IExaminable examinable)
-    {
-        isZooming = true;
-        canRotate = false; // Disable rotation
-
-        initialCamPosition = cam.transform.position;
-
-
-        Vector3 zoomTargetPosition = hit.point - (hit.point - initialCamPosition).normalized * maxZoomDistance;
-
-        // Move camera to zoom position
-        yield return MoveCamera(cam.transform.position, zoomTargetPosition);
-
-        // Perform examination
-        examinable.Examine();
-
-        // Move camera back to initial position
-        yield return MoveCamera(cam.transform.position, initialCamPosition);
-
-        //cam.transform.position = initialCamPosition;
-
-        isZooming = false;
-        canRotate = true; // Re-enable rotation
-
-    }
-
-
-
-    private void CancelLoading()
-    {
-
-
-        if(loadingCoroutine != null) StopCoroutine(loadingCoroutine);
-        OnLoadingCancelled?.Invoke();
-        isLoading = false;  
-        targetExaminable = null;
-    }
-
-
-
-    private IEnumerator MoveCamera(Vector3 fromPosition, Vector3 toPosition)
-    {
-        float progress = 0f;
-        while (progress < 1f)
+        else
         {
-            progress += Time.deltaTime * zoomSpeed;
-            cam.transform.position = Vector3.Lerp(fromPosition, toPosition, progress);
-            yield return null;
-
-
-
+            // Cancel the loading process if no valid target is detected
+            loadingManager.CancelLoadingProcess();
         }
-
     }
-
 }
