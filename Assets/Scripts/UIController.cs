@@ -59,18 +59,18 @@ public class UIController : MonoBehaviour
         evidenceIcon.sprite = evidence.clueIcon;
         evidenceNameText.text = evidence.clueName;
         evidenceDescriptionText.text = evidence.clueDescription;
-
         evidencePopup.SetActive(true);
-        StartCoroutine(HideEvidencePopupAfterDelay());
+        Cursor.lockState = CursorLockMode.None;
     }
 
     /// <summary>
-    /// Hides the evidence popup after a delay.
+    /// Hides the evidence popup.
     /// </summary>
-    private IEnumerator HideEvidencePopupAfterDelay()
+    public void HideEvidencePopup()
     {
-        yield return new WaitForSeconds(3f);
         evidencePopup.SetActive(false);
+        Cursor.lockState = CursorLockMode.Locked;
+
     }
 
     /// <summary>

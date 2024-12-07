@@ -16,10 +16,13 @@ public class Evidence : MonoBehaviour, IExaminable
     private bool isVibrating = false; // Indicates whether the evidence is vibrating
     private Vector3 originalPosition; // Stores the original position of the evidence
 
+    [SerializeField] private GameObject ExamineFX;
+
     private void Start()
     {
         // Cache the original position
         originalPosition = transform.localPosition;
+        ExamineFX.SetActive(false);
     }
 
     /// <summary>
@@ -40,8 +43,11 @@ public class Evidence : MonoBehaviour, IExaminable
         isVibrating = true;
         StartCoroutine(Vibrate());
 
+        ExamineFX.SetActive(true);
+        ExamineFX.GetComponent<ParticleSystem>().Play();
         // Wait for the specified delay
         yield return new WaitForSeconds(examinationDelay);
+
 
         // Create evidence data and add it to the inventory
         EvidenceData evidenceData = new EvidenceData(clueName, clueDescription, clueIcon);
@@ -52,9 +58,11 @@ public class Evidence : MonoBehaviour, IExaminable
         // Stop vibrating when zoom-out starts
         isVibrating = false;
 
-        // Wait for camera to complete zoom-out (adjust as needed)
-        yield return new WaitForSeconds(0.5f);
+        /*// Wait for camera to complete zoom-out (adjust as needed)
+        yield return new WaitForSeconds(0.5f);*/
 
+        
+       
         // Destroy the evidence object
         Destroy(gameObject);
     }

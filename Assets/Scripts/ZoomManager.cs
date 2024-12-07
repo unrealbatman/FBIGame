@@ -36,12 +36,12 @@ public class ZoomManager : MonoBehaviour
         // Save the current camera position before zooming in
         Vector3 currentCameraPosition = camera.transform.position;
 
-        // Perform examination
-        examinable.Examine();
+       
         // Zoom in
         yield return MoveCameraToTarget(camera.transform, currentCameraPosition, zoomTargetPosition);
 
-        
+        // Perform examination
+        examinable.Examine();
 
         // Zoom out
         yield return MoveCameraToTarget(camera.transform, camera.transform.position, currentCameraPosition);
