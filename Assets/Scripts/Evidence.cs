@@ -28,7 +28,7 @@ public class Evidence : MonoBehaviour, IExaminable
     /// <summary>
     /// Starts the examination process for the evidence.
     /// </summary>
-    public void Examine()
+    public void Interact()
     {
         Debug.Log($"Examining Evidence: {clueName}");
         StartCoroutine(HandleExamination());

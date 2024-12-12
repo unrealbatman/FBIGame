@@ -41,7 +41,7 @@ public class ZoomManager : MonoBehaviour
         yield return MoveCameraToTarget(camera.transform, currentCameraPosition, zoomTargetPosition);
 
         // Perform examination
-        examinable.Examine();
+        examinable.Interact();
 
         // Zoom out
         yield return MoveCameraToTarget(camera.transform, camera.transform.position, currentCameraPosition);

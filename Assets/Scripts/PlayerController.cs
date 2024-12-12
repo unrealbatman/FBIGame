@@ -77,18 +77,35 @@ public class PlayerController : MonoBehaviour
     private void HandleAutomaticInteraction()
     {
         // Prevent interaction if zooming or loading is in progress
-        if (ZoomManager.isZooming || LoadingManager.isLoading) return;
+        if (ZoomManager.isZooming || LoadingManager.isLoading || IsTeleporting()) return;
 
         // Cast a ray from the center of the screen to detect objects
         Ray ray = mainCamera.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2));
         if (Physics.Raycast(ray, out RaycastHit hit, interactionRange) &&
             hit.collider.gameObject.TryGetComponent<IExaminable>(out IExaminable examinable))
         {
-            // Start the loading process and zoom in once loading is complete
-            loadingManager.StartLoadingProcess(hit, () =>
+
+            if (examinable != null)
             {
-                zoomManager.StartZoomAndExamine(hit, examinable);
-            });
+                
+                // Start the loading process
+                loadingManager.StartLoadingProcess(hit, () =>
+                {
+
+                    // Check if it's a TeleportableItem or ExaminableItem
+                    if (hit.collider.gameObject.TryGetComponent<Teleportal>(out Teleportal teleItem))
+                    {
+                        // Teleport the player
+                        teleItem.Interact();  // Trigger teleportation
+                    }
+                    else if (hit.collider.gameObject.TryGetComponent<Evidence>(out Evidence evItem))
+                    {
+                        // Zoom and examine the item
+                        zoomManager.StartZoomAndExamine(hit, evItem);  // Trigger zoom for evidence
+                    }
+                });
+            }
+           
         }
         else
         {
@@ -97,5 +114,10 @@ public class PlayerController : MonoBehaviour
         }
 
 
+    }
+    // Helper method to check if teleportation is in progress
+    private bool IsTeleporting()
+    {
+        return FindObjectOfType<Teleportal>().isTeleporting; // Check if any Teleportal is teleporting
     }
 }

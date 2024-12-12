@@ -4,5 +4,5 @@ using UnityEngine;
 
 public interface IExaminable 
 {
-    void Examine();
+    void Interact();
 }

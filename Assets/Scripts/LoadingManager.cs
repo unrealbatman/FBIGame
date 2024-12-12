@@ -84,4 +84,10 @@ public class LoadingManager : MonoBehaviour
         Ray ray = Camera.main.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2));
         return Physics.Raycast(ray, out RaycastHit hit) && hit.collider == initialHit.collider;
     }
+
+    // Helper method to check if teleportation is in progress
+    private bool IsTeleporting()
+    {
+        return FindObjectOfType<Teleportal>().isTeleporting; // Check if any Teleportal is teleporting
+    }
 }
