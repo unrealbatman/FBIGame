@@ -60,7 +60,13 @@ public class UIController : MonoBehaviour
         evidenceNameText.text = evidence.clueName;
         evidenceDescriptionText.text = evidence.clueDescription;
         evidencePopup.SetActive(true);
+
+        // Lock the camera
+        PlayerController.isCameraLocked = true;
+
+        // Optionally unlock the cursor
         Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 
     /// <summary>
@@ -69,8 +75,13 @@ public class UIController : MonoBehaviour
     public void HideEvidencePopup()
     {
         evidencePopup.SetActive(false);
-        Cursor.lockState = CursorLockMode.Locked;
+        
+        // Lock the camera
+        PlayerController.isCameraLocked = false;
 
+        // Optionally unlock the cursor
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     /// <summary>

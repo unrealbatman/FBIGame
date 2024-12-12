@@ -25,6 +25,9 @@ public class PlayerController : MonoBehaviour
     private LoadingManager loadingManager;
     private ZoomManager zoomManager;
 
+    public static bool isCameraLocked { get; set; } = false; // Static flag to lock/unlock camera movement
+
+
     private void Start()
     {
         // Lock the cursor to the game screen
@@ -38,15 +41,19 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        // Rotate the player's head only if zooming is not active
-        if (!ZoomManager.isZooming)
+        // Rotate the player's head only if the camera is not locked and zooming is not active
+        if (!ZoomManager.isZooming && !isCameraLocked)
         {
             HandleMouseLook();
         }
 
         // Automatically detect and interact with objects in the player's view
-        HandleAutomaticInteraction();
+        if (!isCameraLocked) // Prevent interaction if the camera is locked
+        {
+            HandleAutomaticInteraction();
+        }
     }
+
 
     /// <summary>
     /// Rotates the player's head based on mouse input.
@@ -88,5 +95,7 @@ public class PlayerController : MonoBehaviour
             // Cancel the loading process if no valid target is detected
             loadingManager.CancelLoadingProcess();
         }
+
+
     }
 }
