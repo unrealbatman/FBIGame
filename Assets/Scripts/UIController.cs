@@ -7,25 +7,29 @@ using UnityEngine.UI;
 public class UIController : MonoBehaviour
 {
     [Header("Loading Bar References")]
-    [SerializeField] private Image loadingBar; // Reference to the loading bar UI
-    [SerializeField] private RectTransform fxHolder; // Rotating FX holder for visual effects
-    [SerializeField] private TextMeshProUGUI loadingProgressText; // Displays loading progress as text
-    [SerializeField] private GameObject crosshair; // Crosshair UI element
+    [SerializeField] private Image loadingBar;
+    [SerializeField] private RectTransform fxHolder;
+    [SerializeField] private TextMeshProUGUI loadingProgressText;
+    [SerializeField] private GameObject crosshair;
 
     [Header("FX Settings")]
-    [SerializeField] private ParticleSystem loadingFXParticle; // Particle effect during loading
+    [SerializeField] private ParticleSystem loadingFXParticle;
 
     [Header("Evidence Popup References")]
-    [SerializeField] private GameObject evidencePopup; // Popup for displaying evidence details
-    [SerializeField] private Image evidenceIcon; // Icon for the evidence
-    [SerializeField] private TextMeshProUGUI evidenceNameText; // Name of the evidence
-    [SerializeField] private TextMeshProUGUI evidenceDescriptionText; // Description of the evidence
+    [SerializeField] private GameObject evidencePopup;
+    [SerializeField] private Image evidenceIcon;
+    [SerializeField] private TextMeshProUGUI evidenceNameText;
+    [SerializeField] private TextMeshProUGUI evidenceDescriptionText;
 
-    private RawImage crosshairImage; // Cached reference to the crosshair's RawImage component
+    [Header("Inventory Menu References")]
+    [SerializeField] private GameObject inventoryMenu;
+    [SerializeField] private Transform inventoryListParent;
+    [SerializeField] private Button evidenceButtonPrefab;
+
+    private RawImage crosshairImage;
 
     private void Awake()
     {
-        // Cache the RawImage component of the crosshair
         crosshairImage = crosshair.GetComponent<RawImage>();
         if (crosshairImage == null)
         {
@@ -35,112 +39,124 @@ public class UIController : MonoBehaviour
 
     private void OnEnable()
     {
-        // Subscribe to loading and inventory events
-        LoadingManager.OnLoadingProgress += UpdateLoadingBar;
-        LoadingManager.OnLoadingComplete += HandleLoadingComplete;
-        LoadingManager.OnLoadingCancelled += HandleLoadingCancelled;
-        InventoryManager.OnEvidenceAdded += ShowEvidencePopup;
+        SubscribeToEvents();
     }
 
     private void OnDisable()
     {
-        // Unsubscribe from loading and inventory events
+        UnsubscribeFromEvents();
+    }
+
+    private void SubscribeToEvents()
+    {
+        LoadingManager.OnLoadingProgress += UpdateLoadingBar;
+        LoadingManager.OnLoadingComplete += HandleLoadingComplete;
+        LoadingManager.OnLoadingCancelled += HandleLoadingCancelled;
+        InventoryManager.OnEvidenceAdded += ShowEvidencePopup;
+        PlayerController.onShowInventory += ToggleInventoryMenu;
+        EvidenceButton.OnButton += ShowEvidencePopup;
+    }
+
+    private void UnsubscribeFromEvents()
+    {
         LoadingManager.OnLoadingProgress -= UpdateLoadingBar;
         LoadingManager.OnLoadingComplete -= HandleLoadingComplete;
         LoadingManager.OnLoadingCancelled -= HandleLoadingCancelled;
         InventoryManager.OnEvidenceAdded -= ShowEvidencePopup;
+        PlayerController.onShowInventory -= ToggleInventoryMenu;
+        EvidenceButton.OnButton -= ShowEvidencePopup;
     }
 
-    /// <summary>
-    /// Displays a popup with evidence details.
-    /// </summary>
+    private void ToggleInventoryMenu(bool isActive)
+    {
+        if (evidencePopup.activeSelf || ZoomManager.isZooming || LoadingManager.isLoading)
+        {
+            return;
+        }
+
+        inventoryMenu.SetActive(isActive);
+        LockCamera(isActive);
+
+        if (isActive)
+        {
+            PopulateInventory();
+        }
+    }
+
+    private static void LockCamera(bool shouldLock)
+    {
+        PlayerController.isCameraLocked = shouldLock;
+        Cursor.lockState = shouldLock ? CursorLockMode.None : CursorLockMode.Locked;
+        Cursor.visible = shouldLock;
+    }
+
+    private void PopulateInventory()
+    {
+        foreach (Transform child in inventoryListParent)
+        {
+            Destroy(child.gameObject);
+        }
+
+        foreach (var evidenceData in InventoryManager.Instance.GetCollectedEvidence())
+        {
+            Button evidenceButton = Instantiate(evidenceButtonPrefab, inventoryListParent);
+            evidenceButton.name = evidenceData.clueName;
+            EvidenceButton eb = evidenceButton.GetComponent<EvidenceButton>();
+            eb.Initialize(evidenceData, this);
+        }
+    }
+
     private void ShowEvidencePopup(EvidenceData evidence)
     {
+        if (inventoryMenu.activeSelf)
+        {
+            inventoryMenu.SetActive(false);
+        }
         evidenceIcon.sprite = evidence.clueIcon;
         evidenceNameText.text = evidence.clueName;
         evidenceDescriptionText.text = evidence.clueDescription;
         evidencePopup.SetActive(true);
-
-        // Lock the camera
-        PlayerController.isCameraLocked = true;
-
-        // Optionally unlock the cursor
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        LockCamera(true);
     }
 
-    /// <summary>
-    /// Hides the evidence popup.
-    /// </summary>
     public void HideEvidencePopup()
     {
-        evidencePopup.SetActive(false);
-        
-        // Lock the camera
-        PlayerController.isCameraLocked = false;
+        if (!inventoryMenu.activeSelf && InventoryManager.Instance.GetCollectedEvidence().Count>1) {
 
-        // Optionally unlock the cursor
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+            ToggleInventoryMenu(true);
+        }
+        evidencePopup.SetActive(false);
+        LockCamera(inventoryMenu.activeSelf);
     }
 
-    /// <summary>
-    /// Updates the loading bar and associated UI elements.
-    /// </summary>
     private void UpdateLoadingBar(float progress)
     {
-        // Update loading bar fill amount
         loadingBar.GetComponentsInChildren<Image>()[1].fillAmount = progress;
-
-        // Update progress text
         loadingProgressText.text = Mathf.Floor(progress * 100).ToString();
-
-        // Activate loading UI elements
         ToggleLoadingUI(true);
-
-        // Rotate FX holder for visual feedback
         fxHolder.rotation = Quaternion.Euler(new Vector3(0f, 0f, -progress * 360));
 
-        // Play loading particle effect if not already playing
         if (!loadingFXParticle.isPlaying)
         {
             loadingFXParticle.Play();
         }
 
-        // Make crosshair transparent during loading
         SetCrosshairVisibility(0f);
     }
 
-    /// <summary>
-    /// Handles loading completion by hiding the loading bar and stopping effects.
-    /// </summary>
     private void HandleLoadingComplete()
     {
-        // Deactivate loading UI elements
         ToggleLoadingUI(false);
-
-        // Stop loading particle effect
         loadingFXParticle.Stop();
     }
 
-    /// <summary>
-    /// Handles loading cancellation by resetting the loading UI.
-    /// </summary>
     private void HandleLoadingCancelled()
     {
-        // Reset loading bar fill amount
         loadingBar.fillAmount = 0;
-
-        // Deactivate loading UI elements
         ToggleLoadingUI(false);
-
-        // Restore crosshair visibility
         SetCrosshairVisibility(1f);
     }
 
-    /// <summary>
-    /// Toggles the visibility of loading-related UI elements.
-    /// </summary>
     private void ToggleLoadingUI(bool isVisible)
     {
         loadingBar.gameObject.SetActive(isVisible);
@@ -148,9 +164,6 @@ public class UIController : MonoBehaviour
         fxHolder.gameObject.SetActive(isVisible);
     }
 
-    /// <summary>
-    /// Adjusts the transparency of the crosshair.
-    /// </summary>
     private void SetCrosshairVisibility(float alpha)
     {
         if (crosshairImage != null)

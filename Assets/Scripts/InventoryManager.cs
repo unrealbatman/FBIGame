@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using static Evidence;
 
 public class InventoryManager : MonoBehaviour
 {
@@ -9,8 +8,7 @@ public class InventoryManager : MonoBehaviour
     public static InventoryManager Instance { get; private set; }
 
     [Header("Inventory")]
-    [SerializeField]
-    private List<EvidenceData> collectedEvidence = new List<EvidenceData>(); // List of collected evidence data
+    [SerializeField] private List<EvidenceData> collectedEvidence = new List<EvidenceData>();
 
     // Event triggered when new evidence is added
     public static event Action<EvidenceData> OnEvidenceAdded;
@@ -24,17 +22,25 @@ public class InventoryManager : MonoBehaviour
         }
         else
         {
-            Destroy(gameObject); // Destroy duplicate instances
+            Destroy(gameObject);
+            return;
         }
+
+        // Optional: Persist the instance across scenes
+        // DontDestroyOnLoad(gameObject);
     }
 
     /// <summary>
-    /// Adds evidence data to the player's inventory.
+    /// Adds evidence data to the player's inventory and notifies listeners.
     /// </summary>
     /// <param name="evidenceData">The evidence data to add.</param>
     public void AddEvidenceToInventory(EvidenceData evidenceData)
     {
-        if (evidenceData == null) return;
+        if (evidenceData == null)
+        {
+            Debug.LogWarning("Attempted to add null evidence to inventory.");
+            return;
+        }
 
         // Add evidence data to the inventory
         collectedEvidence.Add(evidenceData);
@@ -45,11 +51,11 @@ public class InventoryManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Retrieves the list of collected evidence data in the inventory.
+    /// Retrieves the list of collected evidence data.
     /// </summary>
-    /// <returns>List of evidence data.</returns>
+    /// <returns>List of collected evidence data.</returns>
     public List<EvidenceData> GetCollectedEvidence()
     {
-        return collectedEvidence;
+        return new List<EvidenceData>(collectedEvidence);
     }
 }

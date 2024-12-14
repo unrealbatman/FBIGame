@@ -27,6 +27,9 @@ public class PlayerController : MonoBehaviour
 
     public static bool isCameraLocked { get; set; } = false; // Static flag to lock/unlock camera movement
 
+    public static event Action<bool> onShowInventory;
+
+    private bool isInventoryActive = false;
 
     private void Start()
     {
@@ -41,19 +44,21 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        // Rotate the player's head only if the camera is not locked and zooming is not active
         if (!ZoomManager.isZooming && !isCameraLocked)
         {
             HandleMouseLook();
         }
 
-        // Automatically detect and interact with objects in the player's view
-        if (!isCameraLocked) // Prevent interaction if the camera is locked
+        if (!isCameraLocked)
         {
             HandleAutomaticInteraction();
         }
-    }
 
+        if (Input.GetKeyDown(KeyCode.I))
+        {
+            ToggleInventory();
+        }
+    }
 
     /// <summary>
     /// Rotates the player's head based on mouse input.
@@ -61,14 +66,14 @@ public class PlayerController : MonoBehaviour
     private void HandleMouseLook()
     {
         rotationX += Input.GetAxis("Mouse X") * mouseSensitivityX;
-        rotationY += Input.GetAxis("Mouse Y") * -mouseSensitivityY;
+        rotationY -= Input.GetAxis("Mouse Y") * mouseSensitivityY;
 
         // Clamp rotation values to prevent excessive rotation
         rotationX = Mathf.Clamp(rotationX, rotationLimitXMin, rotationLimitXMax);
         rotationY = Mathf.Clamp(rotationY, rotationLimitYMin, rotationLimitYMax);
 
         // Apply the rotation to the player's head
-        playerHead.localEulerAngles = new Vector3(rotationY, rotationX, playerHead.localEulerAngles.z);
+        playerHead.localEulerAngles = new Vector3(rotationY, rotationX, 0f);
     }
 
     /// <summary>
@@ -76,48 +81,46 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private void HandleAutomaticInteraction()
     {
-        // Prevent interaction if zooming or loading is in progress
-        if (ZoomManager.isZooming || LoadingManager.isLoading || IsTeleporting()) return;
+        if (ZoomManager.isZooming || LoadingManager.isLoading || IsTeleporting())
+            return;
 
-        // Cast a ray from the center of the screen to detect objects
         Ray ray = mainCamera.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2));
         if (Physics.Raycast(ray, out RaycastHit hit, interactionRange) &&
-            hit.collider.gameObject.TryGetComponent<IExaminable>(out IExaminable examinable))
+            hit.collider.TryGetComponent<IExaminable>(out IExaminable examinable))
         {
-
-            if (examinable != null)
+            loadingManager.StartLoadingProcess(hit, () =>
             {
-                
-                // Start the loading process
-                loadingManager.StartLoadingProcess(hit, () =>
+                if (hit.collider.TryGetComponent<Teleportal>(out Teleportal teleItem))
                 {
-
-                    // Check if it's a TeleportableItem or ExaminableItem
-                    if (hit.collider.gameObject.TryGetComponent<Teleportal>(out Teleportal teleItem))
-                    {
-                        // Teleport the player
-                        teleItem.Interact();  // Trigger teleportation
-                    }
-                    else if (hit.collider.gameObject.TryGetComponent<Evidence>(out Evidence evItem))
-                    {
-                        // Zoom and examine the item
-                        zoomManager.StartZoomAndExamine(hit, evItem);  // Trigger zoom for evidence
-                    }
-                });
-            }
-           
+                    teleItem.Interact();
+                }
+                else if (hit.collider.TryGetComponent<Evidence>(out Evidence evidenceItem))
+                {
+                    zoomManager.StartZoomAndExamine(hit, evidenceItem);
+                }
+            });
         }
         else
         {
-            // Cancel the loading process if no valid target is detected
             loadingManager.CancelLoadingProcess();
         }
-
-
     }
-    // Helper method to check if teleportation is in progress
+
+    /// <summary>
+    /// Toggles the inventory display state.
+    /// </summary>
+    private void ToggleInventory()
+    {
+        isInventoryActive = !isInventoryActive;
+        onShowInventory?.Invoke(isInventoryActive);
+    }
+
+    /// <summary>
+    /// Helper method to check if teleportation is in progress.
+    /// </summary>
     private bool IsTeleporting()
     {
-        return FindObjectOfType<Teleportal>().isTeleporting; // Check if any Teleportal is teleporting
+        var teleportal = FindObjectOfType<Teleportal>();
+        return teleportal != null && teleportal.isTeleporting;
     }
 }
