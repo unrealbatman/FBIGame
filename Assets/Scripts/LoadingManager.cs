@@ -10,76 +10,83 @@ public class LoadingManager : MonoBehaviour
     public static event Action OnLoadingCancelled; // Triggered when loading is cancelled
 
     [Header("Loading Settings")]
-    [SerializeField] private float loadingDuration = 2f; // Time required to complete loading
+    [SerializeField] private float loadingDuration = 2f; // Duration to complete loading (in seconds)
 
-    private Coroutine activeLoadingCoroutine; // Tracks the current loading coroutine
-    public static bool isLoading { get; private set; } = false; // Tracks whether loading is active
+    private Coroutine activeLoadingCoroutine; // Tracks the current active loading coroutine
+    public static bool isLoading { get; private set; } = false; // Tracks whether a loading process is ongoing
 
     /// <summary>
     /// Starts the loading process for a target object.
     /// </summary>
     /// <param name="hit">The RaycastHit with target information.</param>
-    /// <param name="onComplete">Callback to execute on successful completion.</param>
+    /// <param name="onComplete">Callback to execute when the loading completes successfully.</param>
     public void StartLoadingProcess(RaycastHit hit, Action onComplete)
     {
-        if (isLoading) return; // Avoid starting a new process if one is already active
+        // Ensure a loading process isn't already active
+        if (isLoading) return;
 
+        // Start a new loading process
         activeLoadingCoroutine = StartCoroutine(ExecuteLoadingRoutine(hit, onComplete));
     }
 
     /// <summary>
-    /// Cancels the current loading process.
+    /// Cancels the current loading process if active.
     /// </summary>
     public void CancelLoadingProcess()
     {
+        // Stop the active loading coroutine if it's running
         if (activeLoadingCoroutine != null)
         {
             StopCoroutine(activeLoadingCoroutine);
             activeLoadingCoroutine = null;
         }
 
-        isLoading = false;
-        OnLoadingCancelled?.Invoke(); // Notify listeners about the cancellation
+        isLoading = false; // Reset loading status
+        OnLoadingCancelled?.Invoke(); // Notify listeners that loading was canceled
     }
 
     /// <summary>
-    /// Manages the loading process through a coroutine.
+    /// Executes the loading process in a coroutine.
     /// </summary>
     /// <param name="hit">Initial RaycastHit information.</param>
     /// <param name="onComplete">Callback to execute on successful completion.</param>
     private IEnumerator ExecuteLoadingRoutine(RaycastHit hit, Action onComplete)
     {
-        isLoading = true;
-        float progress = 0f;
+        isLoading = true; // Mark loading as in progress
+        float progress = 0f; // Progress bar for loading
 
+        // Loading loop until progress reaches 100%
         while (progress < 1f)
         {
-            // Verify the crosshair remains on the initial target
+            // Check if the crosshair is still over the same target
             if (!IsCrosshairStillOnTarget(hit))
             {
-                CancelLoadingProcess();
+                CancelLoadingProcess(); // Cancel if the target is no longer in focus
                 yield break;
             }
 
             progress += Time.deltaTime / loadingDuration; // Increment progress
-            OnLoadingProgress?.Invoke(progress); // Notify listeners of progress
-            yield return null;
+            OnLoadingProgress?.Invoke(progress); // Notify listeners about the progress
+            yield return null; // Wait for the next frame
         }
 
-        // Completion logic
-        isLoading = false;
-        OnLoadingComplete?.Invoke(); // Notify listeners about completion
-        onComplete?.Invoke(); // Trigger the provided callback
+        // Finalizing loading process
+        isLoading = false; // Mark loading as complete
+        OnLoadingComplete?.Invoke(); // Notify listeners about loading completion
+        onComplete?.Invoke(); // Trigger the provided completion callback
     }
 
     /// <summary>
     /// Checks if the crosshair is still aimed at the original target.
     /// </summary>
-    /// <param name="initialHit">The initial RaycastHit.</param>
-    /// <returns>True if the crosshair is still on target; otherwise, false.</returns>
+    /// <param name="initialHit">The initial RaycastHit data.</param>
+    /// <returns>True if the crosshair is still on the same target; otherwise, false.</returns>
     private bool IsCrosshairStillOnTarget(RaycastHit initialHit)
     {
+        // Cast a ray from the screen's center (where the crosshair is)
         Ray ray = Camera.main.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2));
+
+        // Check if the ray still hits the same object as the initial target
         return Physics.Raycast(ray, out RaycastHit hit) && hit.collider == initialHit.collider;
     }
 }

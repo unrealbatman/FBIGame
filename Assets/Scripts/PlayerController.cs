@@ -28,6 +28,8 @@ public class PlayerController : MonoBehaviour
     public static bool isCameraLocked { get; set; } = false; // Static flag to lock/unlock camera movement
 
     public static event Action<bool> onShowInventory;
+    public static event Action<bool> OnTeleportalEnabled;
+
 
     private bool isInventoryActive = false;
 
@@ -88,10 +90,18 @@ public class PlayerController : MonoBehaviour
         if (Physics.Raycast(ray, out RaycastHit hit, interactionRange) &&
             hit.collider.TryGetComponent<IExaminable>(out IExaminable examinable))
         {
+            if (hit.collider.TryGetComponent<Teleportal>(out Teleportal teleportal)) {
+
+                OnTeleportalEnabled?.Invoke(true);
+                
+            }
+          
+
             loadingManager.StartLoadingProcess(hit, () =>
             {
                 if (hit.collider.TryGetComponent<Teleportal>(out Teleportal teleItem))
                 {
+
                     teleItem.Interact();
                 }
                 else if (hit.collider.TryGetComponent<Evidence>(out Evidence evidenceItem))
@@ -103,6 +113,10 @@ public class PlayerController : MonoBehaviour
         else
         {
             loadingManager.CancelLoadingProcess();
+           
+            OnTeleportalEnabled?.Invoke(false);
+
+            
         }
     }
 
@@ -121,6 +135,6 @@ public class PlayerController : MonoBehaviour
     private bool IsTeleporting()
     {
         var teleportal = FindObjectOfType<Teleportal>();
-        return teleportal != null && teleportal.isTeleporting;
+        return teleportal != null && teleportal.IsTeleporting;
     }
 }

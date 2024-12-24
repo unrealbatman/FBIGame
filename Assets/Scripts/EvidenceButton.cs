@@ -4,38 +4,45 @@ using UnityEngine;
 public class EvidenceButton : MonoBehaviour
 {
     [Header("Evidence Details")]
-    public string clueName; // Name of the evidence
-    public string clueDescription; // Description of the evidence
-    public Sprite clueIcon; // Icon representing the evidence
+    public string clueName; // The name of the evidence item.
+    public string clueDescription; // A description of the evidence.
+    public Sprite clueIcon; // The icon representing the evidence.
 
-    private EvidenceData evidenceData; // Associated evidence data
-    private UIController uiController; // Reference to the UIController
+    private EvidenceData evidenceData; // Holds the associated evidence data for this button.
 
-    // Event triggered when the button is clicked
+    // Event triggered when the button is clicked. Passes the EvidenceData as a parameter.
     public static event Action<EvidenceData> OnButton;
 
     /// <summary>
-    /// Initializes the evidence button with the provided data and UI controller.
+    /// Initializes the evidence button with the provided evidence data.
+    /// This method should be called to set up the button before interaction.
     /// </summary>
-    /// <param name="data">The evidence data associated with this button.</param>
-    /// <param name="controller">Reference to the UIController managing this button.</param>
-    public void Initialize(EvidenceData data, UIController controller)
+    /// <param name="data">The evidence data to associate with this button.</param>
+    public void Initialize(EvidenceData data)
     {
-        evidenceData = data ?? throw new ArgumentNullException(nameof(data), "Evidence data cannot be null.");
-        uiController = controller ?? throw new ArgumentNullException(nameof(controller), "UIController cannot be null.");
+        // Ensure that the provided data is not null.
+        if (data == null)
+        {
+            throw new ArgumentNullException(nameof(data), "Evidence data cannot be null.");
+        }
+
+        evidenceData = data; // Assign the evidence data to the instance variable.
     }
 
     /// <summary>
     /// Invokes the OnButton event when this button is clicked.
+    /// This method is tied to the button's click action.
     /// </summary>
     public void OnButtonClick()
     {
+        // Check if evidence data is properly initialized.
         if (evidenceData == null)
         {
             Debug.LogWarning("Evidence data is null. Cannot invoke OnButton event.");
             return;
         }
 
+        // Trigger the OnButton event, passing the associated evidence data.
         OnButton?.Invoke(evidenceData);
     }
 }

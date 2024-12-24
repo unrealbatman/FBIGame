@@ -10,20 +10,20 @@ public class Evidence : MonoBehaviour, IExaminable
 
     [Header("Examination Settings")]
     [SerializeField] private float examinationDelay = 2f; // Delay before adding evidence to the inventory
-    [SerializeField] private float vibrationIntensity = 0.1f; // Intensity of vibration
-    [SerializeField] private float vibrationSpeed = 20f; // Speed of vibration
+    [SerializeField] private float vibrationIntensity = 0.1f; // Intensity of vibration effect
+    [SerializeField] private float vibrationSpeed = 20f; // Speed at which the vibration occurs
 
-    private bool isVibrating = false; // Indicates if the evidence is vibrating
-    private Vector3 originalPosition; // Original position of the evidence
+    private bool isVibrating = false; // Flag indicating if the evidence is vibrating
+    private Vector3 originalPosition; // Original position of the evidence object
 
-    [SerializeField] private GameObject examineFX; // Effect to play during examination
+    [SerializeField] private GameObject examineFX; // Effect to play during examination (e.g., particles)
 
     private void Start()
     {
-        // Cache the original position
+        // Cache the original position of the evidence object
         originalPosition = transform.localPosition;
 
-        // Ensure the examination effect is initially inactive
+        // Ensure the examination effect (if any) is initially inactive
         if (examineFX != null)
         {
             examineFX.SetActive(false);
@@ -31,7 +31,7 @@ public class Evidence : MonoBehaviour, IExaminable
     }
 
     /// <summary>
-    /// Starts the examination process for the evidence.
+    /// Starts the examination process when the evidence is interacted with.
     /// </summary>
     public void Interact()
     {
@@ -40,14 +40,14 @@ public class Evidence : MonoBehaviour, IExaminable
     }
 
     /// <summary>
-    /// Manages the examination process with vibration and inventory addition.
+    /// Handles the examination process, including vibration and adding evidence to inventory.
     /// </summary>
     private IEnumerator HandleExamination()
     {
-        isVibrating = true;
-        StartCoroutine(Vibrate());
+        isVibrating = true; // Start the vibration effect
+        StartCoroutine(Vibrate()); // Vibrate the evidence object
 
-        // Activate and play the examination effect
+        // Activate and play the examination effect (if it exists)
         if (examineFX != null)
         {
             examineFX.SetActive(true);
@@ -55,39 +55,41 @@ public class Evidence : MonoBehaviour, IExaminable
             particleSystem?.Play();
         }
 
-        // Wait for the examination delay
+        // Wait for the specified examination delay before proceeding
         yield return new WaitForSeconds(examinationDelay);
 
         // Add the evidence to the inventory
         var evidenceData = new EvidenceData(clueName, clueDescription, clueIcon);
         InventoryManager.Instance.AddEvidenceToInventory(evidenceData);
+        LevelManager.Instance.CollectEvidence(); // Notify the level manager of the collection
 
         Debug.Log($"Evidence '{clueName}' added to inventory after {examinationDelay} seconds.");
 
-        isVibrating = false;
+        isVibrating = false; // Stop vibration
 
-        // Destroy the evidence object
+        // Destroy the evidence object from the scene
         Destroy(gameObject);
     }
 
     /// <summary>
-    /// Vibrates the evidence object while being examined.
+    /// Vibrates the evidence object while it is being examined.
     /// </summary>
     private IEnumerator Vibrate()
     {
         while (isVibrating)
         {
+            // Calculate vibration offsets in different directions using sine and cosine functions
             float offsetX = Mathf.Sin(Time.time * vibrationSpeed) * vibrationIntensity;
             float offsetY = Mathf.Cos(Time.time * vibrationSpeed) * vibrationIntensity;
             float offsetZ = Mathf.Sin(Time.time * vibrationSpeed * 0.5f) * vibrationIntensity;
 
-            // Apply the vibration offset
+            // Apply the vibration offset to the evidence's position
             transform.localPosition = originalPosition + new Vector3(offsetX, offsetY, offsetZ);
 
-            yield return null;
+            yield return null; // Wait for the next frame
         }
 
-        // Reset position when vibration stops
+        // Reset the position of the evidence object after vibration stops
         transform.localPosition = originalPosition;
     }
 }
