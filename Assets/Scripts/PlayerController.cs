@@ -87,7 +87,7 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private void HandleAutomaticInteraction()
     {
-        if (LoadingManager.isLoading || ZoomManager.isZooming) return;
+        if (LoadingManager.isLoading || ZoomManager.isZooming ||  (activeTeleportal != null && activeTeleportal.GetComponent<Teleportal>().IsTeleporting)) return;
 
         Ray ray = mainCamera.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2));
 
