@@ -28,10 +28,10 @@ public class PlayerController : MonoBehaviour
     public static bool isCameraLocked { get; set; } = false; // Static flag to lock/unlock camera movement
 
     public static event Action<bool> onShowInventory;
-    public static event Action<bool> OnTeleportalEnabled;
 
 
     private bool isInventoryActive = false;
+    private GameObject activeTeleportal;
 
     private void Start()
     {
@@ -83,7 +83,7 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private void HandleAutomaticInteraction()
     {
-        if (ZoomManager.isZooming || LoadingManager.isLoading || IsTeleporting())
+        if (ZoomManager.isZooming || LoadingManager.isLoading )
             return;
 
         Ray ray = mainCamera.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2));
@@ -91,20 +91,18 @@ public class PlayerController : MonoBehaviour
             hit.collider.TryGetComponent<IExaminable>(out IExaminable examinable))
         {
             if (hit.collider.TryGetComponent<Teleportal>(out Teleportal teleportal)) {
-
-                OnTeleportalEnabled?.Invoke(true);
-                
+                if(teleportal.IsTeleporting) {return; }
+                teleportal.EnableTeleportal(true, teleportal.teleportalCanvas);
+                activeTeleportal = teleportal.gameObject;
             }
-          
-
+           
             loadingManager.StartLoadingProcess(hit, () =>
             {
-                if (hit.collider.TryGetComponent<Teleportal>(out Teleportal teleItem))
-                {
+                if (teleportal != null && teleportal.IsTeleporting) return;
 
-                    teleItem.Interact();
-                }
-                else if (hit.collider.TryGetComponent<Evidence>(out Evidence evidenceItem))
+                teleportal?.Interact();
+                
+                if (hit.collider.TryGetComponent<Evidence>(out Evidence evidenceItem))
                 {
                     zoomManager.StartZoomAndExamine(hit, evidenceItem);
                 }
@@ -113,8 +111,12 @@ public class PlayerController : MonoBehaviour
         else
         {
             loadingManager.CancelLoadingProcess();
+
+            if (activeTeleportal != null)
+            {
+                activeTeleportal.GetComponent<Teleportal>().EnableTeleportal(false,activeTeleportal.GetComponent<Teleportal>().teleportalCanvas);
+            }
            
-            OnTeleportalEnabled?.Invoke(false);
 
             
         }
@@ -129,12 +131,5 @@ public class PlayerController : MonoBehaviour
         onShowInventory?.Invoke(isInventoryActive);
     }
 
-    /// <summary>
-    /// Helper method to check if teleportation is in progress.
-    /// </summary>
-    private bool IsTeleporting()
-    {
-        var teleportal = FindObjectOfType<Teleportal>();
-        return teleportal != null && teleportal.IsTeleporting;
-    }
+  
 }

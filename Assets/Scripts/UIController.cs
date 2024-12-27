@@ -30,9 +30,6 @@ public class UIController : MonoBehaviour
     [SerializeField] private Transform inventoryListParent; // Parent transform for dynamically added inventory buttons.
     [SerializeField] private Button evidenceButtonPrefab; // Prefab for evidence buttons.
 
-    [Header("Teleportal Popup Reference")]
-    [SerializeField] private GameObject teleportUI; // Teleportal loading UI panel.
-
     [Header("Evidence Collection UI")]
     [SerializeField] private TextMeshProUGUI evidenceProgressText; // Text displaying collected evidence progress.
 
@@ -69,7 +66,7 @@ public class UIController : MonoBehaviour
         InventoryManager.OnEvidenceAdded += ShowEvidencePopup;
         PlayerController.onShowInventory += ToggleInventoryMenu;
         EvidenceButton.OnButton += ShowEvidencePopup;
-        PlayerController.OnTeleportalEnabled += ShowTeleportalLoadUI;
+        Teleportal.OnTeleportalEnabled += ShowTeleportalLoadUI;
         LevelManager.OnEvidenceProgressUpdated += UpdateEvidenceProgress;
     }
 
@@ -82,7 +79,7 @@ public class UIController : MonoBehaviour
         InventoryManager.OnEvidenceAdded -= ShowEvidencePopup;
         PlayerController.onShowInventory -= ToggleInventoryMenu;
         EvidenceButton.OnButton -= ShowEvidencePopup;
-        PlayerController.OnTeleportalEnabled -= ShowTeleportalLoadUI;
+        Teleportal.OnTeleportalEnabled -= ShowTeleportalLoadUI;
         LevelManager.OnEvidenceProgressUpdated -= UpdateEvidenceProgress;
     }
 
@@ -261,9 +258,9 @@ public class UIController : MonoBehaviour
     /// <summary>
     /// Toggles the teleportal UI visibility.
     /// </summary>
-    private void ShowTeleportalLoadUI(bool isActive)
+    private void ShowTeleportalLoadUI(bool isActive,GameObject teleportalCanvas)
     {
-        teleportUI.SetActive(isActive);
+        teleportalCanvas.SetActive(isActive);
     }
 
     #endregion

@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using Unity.VisualScripting;
 using UnityEngine;
 
 /// <summary>
@@ -13,6 +14,12 @@ public class Teleportal : MonoBehaviour, IExaminable
     private bool isTeleporting = false; // Tracks whether the teleportation process is ongoing.
 
     public bool IsTeleporting { get => isTeleporting; set => isTeleporting = value; }
+
+    public GameObject teleportalCanvas;
+
+    public static event Action<bool, GameObject> OnTeleportalEnabled;
+
+
 
     /// <summary>
     /// Interact with the teleportal to initiate teleportation.
@@ -42,8 +49,13 @@ public class Teleportal : MonoBehaviour, IExaminable
 
         if (playerTransform != null)
         {
-            // Set the player's position and rotation to match the teleportal's.
-            playerTransform.SetPositionAndRotation(transform.position, transform.rotation);
+            
+            // Teleport the player to the transform's position
+            playerTransform.position = new Vector3(transform.position.x, playerTransform.position.y, transform.position.z);
+
+            // Set the player's rotation to the transform's rotation, then rotate by 180 degrees on the Y-axis
+            playerTransform.rotation = Quaternion.Euler(transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y + 180f, transform.rotation.eulerAngles.z);
+
             Debug.Log("Player teleported successfully.");
         }
         else
@@ -53,5 +65,13 @@ public class Teleportal : MonoBehaviour, IExaminable
         }
 
         IsTeleporting = false; // Reset teleportation status.
+    }
+
+
+
+    public void EnableTeleportal(bool isActive, GameObject canvas)
+    {
+        OnTeleportalEnabled?.Invoke(isActive, canvas);
+
     }
 }
