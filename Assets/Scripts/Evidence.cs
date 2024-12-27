@@ -4,19 +4,19 @@ using UnityEngine;
 public class Evidence : MonoBehaviour, IExaminable
 {
     [Header("Evidence Details")]
-    public string clueName; // Name of the evidence
-    public string clueDescription; // Description of the evidence
-    public Sprite clueIcon; // Icon representing the evidence
+    public string clueName; 
+    public string clueDescription; 
+    public Sprite clueIcon; 
 
     [Header("Examination Settings")]
-    [SerializeField] private float examinationDelay = 2f; // Delay before adding evidence to the inventory
-    [SerializeField] private float vibrationIntensity = 0.1f; // Intensity of vibration effect
-    [SerializeField] private float vibrationSpeed = 20f; // Speed at which the vibration occurs
+    [SerializeField] private float examinationDelay = 2f; 
+    [SerializeField] private float vibrationIntensity = 0.1f; 
+    [SerializeField] private float vibrationSpeed = 20f; 
 
-    private bool isVibrating = false; // Flag indicating if the evidence is vibrating
-    private Vector3 originalPosition; // Original position of the evidence object
+    private bool isVibrating = false; 
+    private Vector3 originalPosition; 
 
-    [SerializeField] private GameObject examineFX; // Effect to play during examination (e.g., particles)
+    [SerializeField] private GameObject examineFX; 
 
     private void Start()
     {
@@ -55,7 +55,6 @@ public class Evidence : MonoBehaviour, IExaminable
             particleSystem?.Play();
         }
 
-        // Wait for the specified examination delay before proceeding
         yield return new WaitForSeconds(examinationDelay);
 
         // Add the evidence to the inventory
@@ -67,7 +66,6 @@ public class Evidence : MonoBehaviour, IExaminable
 
         isVibrating = false; // Stop vibration
 
-        // Destroy the evidence object from the scene
         Destroy(gameObject);
     }
 

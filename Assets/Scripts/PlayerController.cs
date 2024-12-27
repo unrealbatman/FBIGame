@@ -4,20 +4,18 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
     [Header("Player Settings")]
-    [SerializeField] private Transform playerHead; // Reference to the player's head for rotation
-    [SerializeField] private Camera mainCamera; // Main camera for the player
-    [SerializeField] private Transform crosshair; // Crosshair transform for aiming
+    [SerializeField] private Transform playerHead;
+    [SerializeField] private Camera mainCamera;
+    [SerializeField] private Transform crosshair;
 
     [Header("Interaction Settings")]
-    [SerializeField] private float interactionRange = 50f; // Maximum interaction range
+    [SerializeField] private float interactionRange = 50f;
 
     [Header("Mouse Sensitivity Settings")]
-    [SerializeField] private float mouseSensitivityX = 2f; // Mouse sensitivity for X-axis
-    [SerializeField] private float mouseSensitivityY = 2f; // Mouse sensitivity for Y-axis
-    [SerializeField] private float rotationLimitXMin = -90f; // Minimum X rotation limit
-    [SerializeField] private float rotationLimitXMax = 90f; // Maximum X rotation limit
-    [SerializeField] private float rotationLimitYMin = -90f; // Minimum Y rotation limit
-    [SerializeField] private float rotationLimitYMax = 90f; // Maximum Y rotation limit
+    [SerializeField] private float mouseSensitivityX = 2f;
+    [SerializeField] private float mouseSensitivityY = 2f;
+    [SerializeField] private Vector2 rotationLimitX = new Vector2(-90f, 90f);
+    [SerializeField] private Vector2 rotationLimitY = new Vector2(-90f, 90f);
 
     private float rotationX = 0f;
     private float rotationY = 0f;
@@ -25,103 +23,149 @@ public class PlayerController : MonoBehaviour
     private LoadingManager loadingManager;
     private ZoomManager zoomManager;
 
-    public static bool isCameraLocked { get; set; } = false; // Static flag to lock/unlock camera movement
+    public static bool isCameraLocked { get; set; } = false;
 
     public static event Action<bool> onShowInventory;
-
 
     private bool isInventoryActive = false;
     private GameObject activeTeleportal;
 
     private void Start()
     {
-        // Lock the cursor to the game screen
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-
-        // Get references to the LoadingManager and ZoomManager
-        loadingManager = GetComponent<LoadingManager>();
-        zoomManager = GetComponent<ZoomManager>();
+        LockCursor();
+        InitializeManagers();
     }
 
     private void Update()
     {
         if (!ZoomManager.isZooming && !isCameraLocked)
         {
-            HandleMouseLook();
+            HandlePlayerRotation();
         }
-
         if (!isCameraLocked)
         {
             HandleAutomaticInteraction();
         }
-
         if (Input.GetKeyDown(KeyCode.I))
         {
             ToggleInventory();
         }
+
+
     }
 
-    /// <summary>
-    /// Rotates the player's head based on mouse input.
-    /// </summary>
-    private void HandleMouseLook()
+ 
+    private void LockCursor()
     {
-        rotationX += Input.GetAxis("Mouse X") * mouseSensitivityX;
-        rotationY -= Input.GetAxis("Mouse Y") * mouseSensitivityY;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
 
-        // Clamp rotation values to prevent excessive rotation
-        rotationX = Mathf.Clamp(rotationX, rotationLimitXMin, rotationLimitXMax);
-        rotationY = Mathf.Clamp(rotationY, rotationLimitYMin, rotationLimitYMax);
+    
+    private void InitializeManagers()
+    {
+        loadingManager = GetComponent<LoadingManager>();
+        zoomManager = GetComponent<ZoomManager>();
 
-        // Apply the rotation to the player's head
+        if (loadingManager == null || zoomManager == null)
+        {
+            Debug.LogError("Required managers are not attached to the PlayerController.");
+        }
+    }
+
+ 
+    private void HandlePlayerRotation()
+    {
+        rotationX = Mathf.Clamp(rotationX + Input.GetAxis("Mouse X") * mouseSensitivityX, rotationLimitX.x, rotationLimitX.y);
+        rotationY = Mathf.Clamp(rotationY - Input.GetAxis("Mouse Y") * mouseSensitivityY, rotationLimitY.x, rotationLimitY.y);
+
         playerHead.localEulerAngles = new Vector3(rotationY, rotationX, 0f);
     }
 
     /// <summary>
-    /// Automatically detects objects in the player's view and interacts with them if possible.
+    /// Handles automatic interaction by processing raycast hits.
     /// </summary>
     private void HandleAutomaticInteraction()
     {
-        if (ZoomManager.isZooming || LoadingManager.isLoading )
-            return;
+        if (LoadingManager.isLoading || ZoomManager.isZooming) return;
 
         Ray ray = mainCamera.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2));
-        if (Physics.Raycast(ray, out RaycastHit hit, interactionRange) &&
-            hit.collider.TryGetComponent<IExaminable>(out IExaminable examinable))
-        {
-            if (hit.collider.TryGetComponent<Teleportal>(out Teleportal teleportal)) {
-                if(teleportal.IsTeleporting) {return; }
-                teleportal.EnableTeleportal(true, teleportal.teleportalCanvas);
-                activeTeleportal = teleportal.gameObject;
-            }
-           
-            loadingManager.StartLoadingProcess(hit, () =>
-            {
-                if (teleportal != null && teleportal.IsTeleporting) return;
 
-                teleportal?.Interact();
-                
-                if (hit.collider.TryGetComponent<Evidence>(out Evidence evidenceItem))
-                {
-                    zoomManager.StartZoomAndExamine(hit, evidenceItem);
-                }
-            });
+        if (Physics.Raycast(ray, out RaycastHit hit, interactionRange))
+            ProcessRaycastHit(hit);
+        else
+            ResetInteractionState();
+    }
+
+
+    private void ProcessRaycastHit(RaycastHit hit)
+    {
+        // Handle Teleportal interactions
+        if (hit.collider.TryGetComponent(out Teleportal teleportal))
+        {
+            InteractWithTeleportal(teleportal);
         }
         else
         {
-            loadingManager.CancelLoadingProcess();
+            // Reset teleportal state if no valid teleportal is detected
+            ResetTeleportalState();
+        }
 
-            if (activeTeleportal != null)
-            {
-                activeTeleportal.GetComponent<Teleportal>().EnableTeleportal(false,activeTeleportal.GetComponent<Teleportal>().teleportalCanvas);
-            }
-           
-
-            
+        // Handle examinable objects (e.g., Evidence)
+        if (hit.collider.TryGetComponent(out IExaminable examinable))
+        {
+            InteractWithExaminable(hit);
         }
     }
 
+   
+    private void InteractWithTeleportal(Teleportal teleportal)
+    {
+        // Skip teleportal interaction if it's already teleporting
+        if (teleportal.IsTeleporting) return;
+        teleportal.EnableTeleportal(true, teleportal.teleportalCanvas);
+        activeTeleportal = teleportal.gameObject;
+    }
+
+  
+    private void InteractWithExaminable(RaycastHit hit)
+    {
+        // Check if there's an active teleportal and ensure it's not teleporting
+        if (activeTeleportal != null && activeTeleportal.GetComponent<Teleportal>().IsTeleporting) return; 
+            
+        
+        // Proceed with examination logic if no teleportal is blocking interaction
+        loadingManager.StartLoadingProcess(hit, () =>
+        {
+            activeTeleportal?.GetComponent<Teleportal>()?.Interact();
+            // Interact with the examinable object (e.g., evidence)
+            if (hit.collider.TryGetComponent(out Evidence evidenceItem))
+            {
+                zoomManager.StartZoomAndExamine(hit, evidenceItem);
+            }
+        });
+    }
+
+    /// <summary>
+    /// Resets the teleportal state when no valid teleportal is detected.
+    /// </summary>
+    private void ResetTeleportalState()
+    {
+        if (activeTeleportal == null) return;
+
+        var teleportal = activeTeleportal.GetComponent<Teleportal>();
+        teleportal?.EnableTeleportal(false, teleportal.teleportalCanvas);
+        activeTeleportal = null;
+    }
+
+    /// <summary>
+    /// Resets interaction state when no valid object is hit.
+    /// </summary>
+    private void ResetInteractionState()
+    {
+        loadingManager.CancelLoadingProcess();
+        ResetTeleportalState();
+    }
     /// <summary>
     /// Toggles the inventory display state.
     /// </summary>
@@ -130,6 +174,4 @@ public class PlayerController : MonoBehaviour
         isInventoryActive = !isInventoryActive;
         onShowInventory?.Invoke(isInventoryActive);
     }
-
-  
 }

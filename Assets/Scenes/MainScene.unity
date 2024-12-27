@@ -8674,7 +8674,6 @@ MonoBehaviour:
   inventoryListParent: {fileID: 692789025}
   evidenceButtonPrefab: {fileID: 5961423547670058568, guid: 303648665b2cdb3469fb4c5f280b22b8,
     type: 3}
-  teleportUI: {fileID: 0}
   evidenceProgressText: {fileID: 1779240665}
 --- !u!1 &1805218495
 GameObject:
@@ -9290,7 +9289,7 @@ PrefabInstance:
     - target: {fileID: 3973715616472720845, guid: 1946b70f042ce0e4fb40859d7fb9ca53,
         type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5486596738035504629, guid: 1946b70f042ce0e4fb40859d7fb9ca53,
         type: 3}
@@ -9536,7 +9535,7 @@ PrefabInstance:
     - target: {fileID: 3973715616472720845, guid: 1946b70f042ce0e4fb40859d7fb9ca53,
         type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5486596738035504629, guid: 1946b70f042ce0e4fb40859d7fb9ca53,
         type: 3}
