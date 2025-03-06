@@ -10,22 +10,21 @@ public class InventoryManager : MonoBehaviour
     [SerializeField]
     private List<EvidenceData> collectedEvidence = new List<EvidenceData>();
 
-    public static event Action<EvidenceData> OnEvidenceAdded;
+    public static event Action<EvidenceData,GameObject> OnEvidenceAdded;
 
     private void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-        }
-        else
+        if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
             return;
         }
+
+        Instance = this;
+        //DontDestroyOnLoad(gameObject); // Optional: Makes InventoryManager persist across scenes
     }
 
-    public void AddEvidenceToInventory(EvidenceData evidenceData)
+    public void AddEvidenceToInventory(EvidenceData evidenceData,GameObject evidenceInfoCanvas)
     {
         if (evidenceData == null)
         {
@@ -33,14 +32,20 @@ public class InventoryManager : MonoBehaviour
             return;
         }
 
+        if (collectedEvidence.Contains(evidenceData))
+        {
+            Debug.LogWarning($"Evidence '{evidenceData.clueName}' is already collected.");
+            return;
+        }
+
         collectedEvidence.Add(evidenceData);
         Debug.Log($"Evidence added to inventory: {evidenceData.clueName}");
 
-        OnEvidenceAdded?.Invoke(evidenceData);
+        OnEvidenceAdded?.Invoke(evidenceData, evidenceInfoCanvas);
     }
 
-    public List<EvidenceData> GetCollectedEvidence()
+    public IReadOnlyList<EvidenceData> GetCollectedEvidence()
     {
-        return new List<EvidenceData>(collectedEvidence);
+        return collectedEvidence.AsReadOnly(); // Returns a read-only collection to prevent external modification
     }
 }

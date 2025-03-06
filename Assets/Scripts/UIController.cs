@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -20,6 +21,7 @@ public class UIController : MonoBehaviour
     [SerializeField] private Image evidenceIcon;
     [SerializeField] private TextMeshProUGUI evidenceNameText;
     [SerializeField] private TextMeshProUGUI evidenceDescriptionText;
+
 
     [Header("Inventory Menu References")]
     [SerializeField] private GameObject inventoryMenu;
@@ -55,19 +57,21 @@ public class UIController : MonoBehaviour
         LoadingManager.OnLoadingProgress += UpdateLoadingBar;
         LoadingManager.OnLoadingComplete += HandleLoadingComplete;
         LoadingManager.OnLoadingCancelled += HandleLoadingCancelled;
-        InventoryManager.OnEvidenceAdded += ShowEvidencePopup;
+        InventoryManager.OnEvidenceAdded += ShowEvidenceInfo;
         PlayerController.onShowInventory += ToggleInventoryMenu;
         EvidenceButton.OnButton += ShowEvidencePopup;
         Teleportal.OnTeleportalEnabled += ShowTeleportalLoadUI;
         LevelManager.OnEvidenceProgressUpdated += UpdateEvidenceProgress;
     }
 
+   
+
     private void UnsubscribeFromEvents()
     {
         LoadingManager.OnLoadingProgress -= UpdateLoadingBar;
         LoadingManager.OnLoadingComplete -= HandleLoadingComplete;
         LoadingManager.OnLoadingCancelled -= HandleLoadingCancelled;
-        InventoryManager.OnEvidenceAdded -= ShowEvidencePopup;
+        InventoryManager.OnEvidenceAdded -= ShowEvidenceInfo;
         PlayerController.onShowInventory -= ToggleInventoryMenu;
         EvidenceButton.OnButton -= ShowEvidencePopup;
         Teleportal.OnTeleportalEnabled -= ShowTeleportalLoadUI;
@@ -208,6 +212,31 @@ public class UIController : MonoBehaviour
     {
         evidenceProgressText.text = $"{collected}/{total}";
     }
+
+
+    private void ShowEvidenceInfo(EvidenceData data, GameObject evidenceInfoCanvas)
+    {
+
+        if (inventoryMenu.activeSelf)
+        {
+            inventoryMenu.SetActive(false);
+        }
+        evidenceInfoCanvas.GetComponentInChildren<TextMeshProUGUI>().text = data.clueDescription;
+
+        // Get the main camera (Assuming it's the player's view)
+        Camera mainCamera = Camera.main;
+
+        if (mainCamera != null)
+        {
+            evidenceInfoCanvas.GetComponentInChildren<Image>().GetComponent<RectTransform>().LookAt(mainCamera.transform);
+            // Adjust rotation to correct the flipped direction (if necessary)
+            evidenceInfoCanvas.GetComponentInChildren<Image>().GetComponent<RectTransform>().Rotate(0f, 180f, 0f);
+        }
+        evidenceInfoCanvas.SetActive(true);
+       
+
+    }
+
 
     #endregion
 

@@ -169,7 +169,7 @@ public class PlayerController : MonoBehaviour
     /// <summary>
     /// Toggles the inventory display state.
     /// </summary>
-    private void ToggleInventory()
+    public void ToggleInventory()
     {
         isInventoryActive = !isInventoryActive;
         onShowInventory?.Invoke(isInventoryActive);

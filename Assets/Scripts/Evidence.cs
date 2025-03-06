@@ -11,7 +11,9 @@ public class Evidence : MonoBehaviour, IExaminable
     [Header("Examination Settings")]
     [SerializeField] private float examinationDelay = 2f; 
     [SerializeField] private float vibrationIntensity = 0.1f; 
-    [SerializeField] private float vibrationSpeed = 20f; 
+    [SerializeField] private float vibrationSpeed = 20f;
+
+    [SerializeField] private GameObject evidenceInfoCanvas;
 
     private bool isVibrating = false; 
     private Vector3 originalPosition; 
@@ -59,14 +61,14 @@ public class Evidence : MonoBehaviour, IExaminable
 
         // Add the evidence to the inventory
         var evidenceData = new EvidenceData(clueName, clueDescription, clueIcon);
-        InventoryManager.Instance.AddEvidenceToInventory(evidenceData);
+        InventoryManager.Instance.AddEvidenceToInventory(evidenceData, evidenceInfoCanvas);
         LevelManager.Instance.CollectEvidence(); // Notify the level manager of the collection
 
         Debug.Log($"Evidence '{clueName}' added to inventory after {examinationDelay} seconds.");
 
         isVibrating = false; // Stop vibration
 
-        Destroy(gameObject);
+        //Destroy(gameObject);
     }
 
     /// <summary>
